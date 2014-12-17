@@ -5,6 +5,7 @@ matplotlib.use('TKAgg')
 
 from matplotlib import animation
 from matplotlib import gridspec
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
@@ -23,7 +24,7 @@ a = 15
 b = 15
 
 N_cells = a*b
-N_steps = 800
+N_steps = 100
 
 if (N_cells % 2 == 0):
   center = 0 #center = ((N_cells)/2)*4
@@ -289,7 +290,7 @@ elif mode == 3:
   plt.colorbar(mat)
 elif mode == 4:
   gs = gridspec.GridSpec(4, 4)
-  gs.update(left = 0.07, right = 1.25)
+  gs.update(left = 0.07, right = 1.05, wspace = 0.02)
 
   grid = gridAtTimestep(0)
   ax_grid = fig.add_subplot(gs[:-1, :-2])
@@ -301,8 +302,20 @@ elif mode == 4:
   ax_line.set_ylim([-50, 100])
   ax_line.set_yticks([-50, 0, 100])
   ax_line.axhline(y=0, ls='--', color='k')
-
   line, = ax_line.plot([], [], lw=1)
+
+  ax_line2 = fig.add_subplot(gs[-1, -2:])
+  ax_line2.set_xlim([0, N_cells-1])
+  ax_line2.set_ylim([-50, 100])
+  ax_line2.set_yticks([-50, 0, 100])
+  ax_line2.axhline(y=0, ls='--', color='k')
+  line, = ax_line2.plot([], [], lw=1)
+
+  ax_heart = fig.add_subplot(gs[:-1, -2:])
+  arr_image = mpimg.imread('heart2.png')
+  ax_heart.imshow(arr_image)
+  ax_heart.axes.get_xaxis().set_visible(False)
+  ax_heart.axes.get_yaxis().set_visible(False)
 
   ani = animation.FuncAnimation(fig, animateFinal, init_func = initFinal, frames=N_steps, interval=2, blit=True)
 
