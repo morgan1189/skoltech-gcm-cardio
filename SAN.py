@@ -3,23 +3,35 @@ from __future__ import division
 import matplotlib
 matplotlib.use('TKAgg')
 
+from matplotlib import animation
+from matplotlib import gridspec
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 import numpy.linalg as la
-import matplotlib.pyplot as plt
-from matplotlib import animation
+
 import math
 
 # width
-a = 15
+a = 3
 
 # height
-b = 15
+b = 3
+
+def turnOffCells(horiz, vert):
+    global cells_turned_off
+    cells_turned_off = []
+    for i in range(len(horiz)):
+        cells_turned_off.append(convertToIndexFromTuple(horiz[i], vert[i]))
+    return cells_turned_off
 
 def convertToIndexFromTuple(A, B):
   return (A-1)*a+(B-1)
 
+turnOffCells([3,3,3],[3,4,5])
+
 # Specify the numbers of cell which you want to turn off
-cells_turned_off = [convertToIndexFromTuple(3,4), convertToIndexFromTuple(3,3), convertToIndexFromTuple(3,5)]
+# cells_turned_off = [convertToIndexFromTuple(3,4), convertToIndexFromTuple(3,3), convertToIndexFromTuple(3,5)]
 
 alpha_n=lambda v: 0.01*(-v+10)/(np.exp((-v+10)*0.1) - 1) if v!=10 else 0.1
 beta_n= lambda v: 0.125*np.exp(-v*0.0125)
@@ -149,9 +161,14 @@ def initGrid():
     mat.set_data(gridAtTimestep(0))
     return mat,
 
+def initFinal():
+    line.set_data([], [])
+    mat.set_data(gridAtTimestep(0))
+    return line,
+
 # animation function.  This is called sequentially
 def animateGraph(i):
-    i = i*10 #acceleration
+    #i=i*10 #acceleration
     x = range(N_cells)
     y = [xs[i][4*j] for j in range(N_cells)]
     line.set_data(x, y)
@@ -169,17 +186,24 @@ def animateGrid(timeStep):
     mat.set_data(gridAtTimestep(timeStep))
     return mat,
 
+def animateFinal(timeStep):
+    mat, = animateGrid(timeStep)
+    line, = animateGraph(timeStep)
+    return line, mat
+
 def normalizePotential(pot):
   return (pot-(-v_rest))/(100-(-v_rest))
 
 # 1 - draw a plot
 # 2 - draw a grid
 # 3 - draw a static grid
-mode = 2
+# 4 - FINAL presentation
+
+fig = plt.figure()
+mode = 4
 
 if mode == 1:
   # Draw an impulse propagation in a chain
-  fig = plt.figure()
   ax = plt.axes(xlim=(0, N_cells), ylim=(-50, 100))
   line, = ax.plot([], [], lw=2)
 
@@ -188,7 +212,7 @@ if mode == 1:
 elif mode == 2:
   # Draw a grid with impulse values
   grid = gridAtTimestep(0)
-  fig, ax = plt.subplots()
+  ax = fig.add_subplot(111)
   mat = ax.matshow(grid, interpolation='none', vmin=0, vmax=1)
   plt.colorbar(mat)
   ani = animation.FuncAnimation(fig, animateGrid, init_func = initGrid, frames=400, interval=2, blit=True)
@@ -196,6 +220,24 @@ elif mode == 3:
   fig, ax = plt.subplots()
   mat = ax.matshow(gridAtTimestep(10), interpolation='none', vmin=0, vmax=1)
   plt.colorbar(mat)
+elif mode == 4:
+  gs = gridspec.GridSpec(4, 4)
+  gs.update(left = 0.07, right = 1.25)
+
+  grid = gridAtTimestep(0)
+  ax_grid = fig.add_subplot(gs[:-1, :-2])
+  mat = ax_grid.matshow(grid, cmap = cm.copper_r, interpolation='none', vmin=0, vmax=1)
+  plt.colorbar(mat)
+
+  ax_line = fig.add_subplot(gs[-1, :-2])
+  ax_line.set_xlim([0, N_cells-1])
+  ax_line.set_ylim([-50, 100])
+  ax_line.set_yticks([-50, 0, 100])
+  ax_line.axhline(y=0, ls='--', color='k')
+
+  line, = ax_line.plot([], [], lw=1)
+
+  ani = animation.FuncAnimation(fig, animateFinal, init_func = initFinal, frames=400, interval=2, blit=True)
 
 #plt.plot([xs[5][4*i] for i in range(a*b)])
 plt.show()
