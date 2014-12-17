@@ -11,10 +11,19 @@ import numpy as np
 import math
 
 # width
-a = 15
+a = 9
 
 # height
-b = 15
+b = 9
+
+N_cells = a*b
+
+if (N_cells % 2 == 0):
+  center = ((N_cells)/2)*4
+else:
+  center = ((N_cells-1)/2)*4
+
+print 'center index: ',center
 
 def turnOffCells(horiz, vert):
     global cells_turned_off
@@ -26,14 +35,14 @@ def turnOffCells(horiz, vert):
 prob = 0.7
 
 def convertToIndexFromTuple(A, B):
-  return (A-1)*a+(B-1)
+  return A*a+B
 
 # Specify the numbers of cell which you want to turn off
 # cells_turned_off = [convertToIndexFromTuple(3,4), convertToIndexFromTuple(3,3), convertToIndexFromTuple(3,5)]
 
 def convertToTupleFromIndex(I):
   B = I-int(I/a)*a
-  A = int(I/a)+1
+  A = int(I/a)
   return (A,B)
 
 # Specify the numbers of cell which you want to turn off
@@ -44,11 +53,11 @@ cells_turned_off = []
 if setRandom :
     for i in range(a):
         for j in range(b):
-            if np.random.rand()>prob:
-                cells_turned_off.append(convertToIndexFromTuple(i,j))
+            if (np.random.rand() > prob) & (convertToIndexFromTuple(i, j) != center/4):
+                cells_turned_off.append(convertToIndexFromTuple(i, j))
 
 else:
-    cells_turned_off = turnOffCells([3,3,3],[3,4,5])
+    cells_turned_off = turnOffCells([5],[4])
 
 alpha_n=lambda v: 0.01*(-v+10)/(np.exp((-v+10)*0.1) - 1) if v!=10 else 0.1
 beta_n= lambda v: 0.125*np.exp(-v*0.0125)
@@ -133,18 +142,12 @@ def cellfunction(x):
     return F
 
 v_rest = 0
-N_cells = a*b
 N_steps = 4000
 dt = 0.05
 
 x = np.zeros(N_cells*4) # equilibrium zero conditions
-if (N_cells % 2 == 0):
-  center = ((N_cells)/2)*4
-else:
-  center = ((N_cells-1)/2)*4
 
 print 'x size: ',np.size(x)
-print 'center index: ',center
 
 for i in range(N_cells):
     x[i*4]+=v_rest
@@ -152,11 +155,11 @@ for i in range(N_cells):
     x[i*4+2]+=m_inf(v_rest)
     x[i*4+3]+=h_inf(v_rest)
 
-amp = 20
-omega = 2*math.pi*0.01 # 10 Hz
+amp = 30
+omega = 2*math.pi*0.001 # 1 Hz
 #u = lambda t: a*math.sin(omega*t)
-#u = lambda t: a*(np.exp(-(t%10)))
-u = lambda t: amp*1
+u = lambda t: 10*a*(np.exp(-(t%10)))
+#u = lambda t: amp*1
 
 xs = np.zeros((N_steps, N_cells*4))
 xs[0] = x
@@ -198,7 +201,7 @@ def gridAtTimestep(timeStep):
         grid[i][j] = normalizePotential(xs[timeStep][4*(a*i+j)])
     for I in cells_turned_off:
         (A,B) = convertToTupleFromIndex(I)
-        grid[A][B] = 2
+        grid[A][B] = -100
     return grid
 
 def animateGrid(timeStep):
@@ -212,7 +215,8 @@ def animateFinal(timeStep):
     return line, mat
 
 def normalizePotential(pot):
-  return (pot-(-v_rest))/(100-(-v_rest))
+  #return (pot-(-v_rest))/(100-(-v_rest))
+  return pot
 
 # 1 - draw a plot
 # 2 - draw a grid
@@ -229,14 +233,14 @@ if mode == 1:
   line, = ax.plot([], [], lw=2)
 
   anim = animation.FuncAnimation(fig, animateGraph, init_func=initGraph,
-                               frames=400, interval=2, blit=True)
+                               frames=N_steps, interval=2, blit=True)
 elif mode == 2:
   # Draw a grid with impulse values
   grid = gridAtTimestep(0)
   ax = fig.add_subplot(111)
   mat = ax.matshow(grid, interpolation='none', vmin=0, vmax=1)
   plt.colorbar(mat)
-  ani = animation.FuncAnimation(fig, animateGrid, init_func = initGrid, frames=400, interval=2, blit=True)
+  ani = animation.FuncAnimation(fig, animateGrid, init_func = initGrid, frames=N_steps, interval=2, blit=True)
 
 elif mode == 3:
   fig, ax = plt.subplots()
@@ -248,7 +252,7 @@ elif mode == 4:
 
   grid = gridAtTimestep(0)
   ax_grid = fig.add_subplot(gs[:-1, :-2])
-  mat = ax_grid.matshow(grid, cmap = cm.RdBu_r, interpolation='none', vmin=0, vmax=1)
+  mat = ax_grid.matshow(grid, cmap = cm.RdBu_r, interpolation='none', vmin=-50, vmax=50)
   plt.colorbar(mat)
 
   ax_line = fig.add_subplot(gs[-1, :-2])
@@ -259,7 +263,7 @@ elif mode == 4:
 
   line, = ax_line.plot([], [], lw=1)
 
-  ani = animation.FuncAnimation(fig, animateFinal, init_func = initFinal, frames=400, interval=2, blit=True)
+  ani = animation.FuncAnimation(fig, animateFinal, init_func = initFinal, frames=N_steps, interval=2, blit=True)
 
 elif mode == 4:
   plt.plot([xs[int(b/2)][4*i] for i in range(a*b)])
