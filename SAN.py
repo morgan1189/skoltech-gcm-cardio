@@ -8,15 +8,13 @@ from matplotlib import gridspec
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
-import numpy.linalg as la
-
 import math
 
 # width
-a = 3
+a = 15
 
 # height
-b = 3
+b = 15
 
 def turnOffCells(horiz, vert):
     global cells_turned_off
@@ -25,13 +23,32 @@ def turnOffCells(horiz, vert):
         cells_turned_off.append(convertToIndexFromTuple(horiz[i], vert[i]))
     return cells_turned_off
 
+prob = 0.7
+
 def convertToIndexFromTuple(A, B):
   return (A-1)*a+(B-1)
 
-turnOffCells([3,3,3],[3,4,5])
-
 # Specify the numbers of cell which you want to turn off
 # cells_turned_off = [convertToIndexFromTuple(3,4), convertToIndexFromTuple(3,3), convertToIndexFromTuple(3,5)]
+
+def convertToTupleFromIndex(I):
+  B = I-int(I/a)*a
+  A = int(I/a)+1
+  return (A,B)
+
+# Specify the numbers of cell which you want to turn off
+setRandom = True
+
+cells_turned_off = []
+
+if setRandom :
+    for i in range(a):
+        for j in range(b):
+            if np.random.rand()>prob:
+                cells_turned_off.append(convertToIndexFromTuple(i,j))
+
+else:
+    cells_turned_off = turnOffCells([3,3,3],[3,4,5])
 
 alpha_n=lambda v: 0.01*(-v+10)/(np.exp((-v+10)*0.1) - 1) if v!=10 else 0.1
 beta_n= lambda v: 0.125*np.exp(-v*0.0125)
@@ -100,13 +117,13 @@ def cellfunction(x):
         F[index] += -1./c_m*(g[0]*x[index+2]**3*x[index+3]*(x[index]-V_0[0])+g[1]*x[index+1]**4*(x[index]-V_0[1])+g[2]*(x[index]-V_0[2]))
         
         # Connecting cells
-        if i%a != 0:
+        if (i%a != 0) and (index-(Ntypes+1) not in cells_turned_off):
             F[index] -= 1./c_m*g_gj*(x[index]-x[index-(Ntypes+1)])
-        if i%a != (a-1):
+        if (i%a != (a-1)) and (index+(Ntypes+1) not in cells_turned_off):
             F[index] -= 1./c_m*g_gj*(x[index]-x[index+(Ntypes+1)])
-        if i >= a:
+        if (i >= a) and (index-a*(Ntypes+1) not in cells_turned_off):
             F[index] -= 1./c_m*g_gj*(x[index]-x[index-a*(Ntypes+1)])
-        if i < Ncells-a:
+        if (i < Ncells-a) and (index+a*(Ntypes+1) not in cells_turned_off):
             F[index] -= 1./c_m*g_gj*(x[index]-x[index+a*(Ntypes+1)])
     
         # ???
@@ -179,6 +196,9 @@ def gridAtTimestep(timeStep):
     for i in range(b):
       for j in range(a):
         grid[i][j] = normalizePotential(xs[timeStep][4*(a*i+j)])
+    for I in cells_turned_off:
+        (A,B) = convertToTupleFromIndex(I)
+        grid[A][B] = 2
     return grid
 
 def animateGrid(timeStep):
@@ -204,7 +224,8 @@ mode = 4
 
 if mode == 1:
   # Draw an impulse propagation in a chain
-  ax = plt.axes(xlim=(0, N_cells), ylim=(-50, 100))
+  fig = plt.figure()
+  ax = plt.axes(xlim=(0, N_cells-1), ylim=(-30, 120))
   line, = ax.plot([], [], lw=2)
 
   anim = animation.FuncAnimation(fig, animateGraph, init_func=initGraph,
@@ -216,6 +237,7 @@ elif mode == 2:
   mat = ax.matshow(grid, interpolation='none', vmin=0, vmax=1)
   plt.colorbar(mat)
   ani = animation.FuncAnimation(fig, animateGrid, init_func = initGrid, frames=400, interval=2, blit=True)
+
 elif mode == 3:
   fig, ax = plt.subplots()
   mat = ax.matshow(gridAtTimestep(10), interpolation='none', vmin=0, vmax=1)
@@ -226,7 +248,7 @@ elif mode == 4:
 
   grid = gridAtTimestep(0)
   ax_grid = fig.add_subplot(gs[:-1, :-2])
-  mat = ax_grid.matshow(grid, cmap = cm.copper_r, interpolation='none', vmin=0, vmax=1)
+  mat = ax_grid.matshow(grid, cmap = cm.RdBu_r, interpolation='none', vmin=0, vmax=1)
   plt.colorbar(mat)
 
   ax_line = fig.add_subplot(gs[-1, :-2])
@@ -239,5 +261,7 @@ elif mode == 4:
 
   ani = animation.FuncAnimation(fig, animateFinal, init_func = initFinal, frames=400, interval=2, blit=True)
 
-#plt.plot([xs[5][4*i] for i in range(a*b)])
+elif mode == 4:
+  plt.plot([xs[int(b/2)][4*i] for i in range(a*b)])
+
 plt.show()
