@@ -25,6 +25,30 @@ else:
 
 print 'center index: ',center
 
+def formSAtoAVpath():
+    horiz = []
+    vert = []
+    for i in range(b):
+        for j in range(a):
+            if (((i==0) & (j not in [0])) |
+                ((i==1) & (j not in [1])) |
+                ((i==2) & (j not in [1, 2])) |
+                ((i==3) & (j not in [2, 3])) |
+                ((i==4) & (j not in [3, 4, 5, 6])) |
+                ((i==5) & (j not in [4, 5, 6, 7, 8, 9])) |
+                ((i==6) & (j not in [3, 4, 7, 8, 9])) |
+                ((i==7) & (j not in [2, 3, 8, 9, 10])) |
+                ((i==8) & (j not in [2, 3, 4, 9, 10, 11])) |
+                ((i==9) & (j not in [3, 4, 5, 6, 10, 11, 12])) |
+                ((i==10) & (j not in [4, 5, 6, 7, 11, 12, 13])) |
+                ((i==11) & (j not in [7, 8, 9, 12, 13, 14])) |
+                ((i==12) & (j not in [8, 9, 10, 13, 14])) |
+                ((i==13) & (j not in [9, 10, 11, 12, 13, 14])) |
+                ((i==14) & (j not in [14]))):
+                horiz.append(i)
+                vert.append(j)
+    return horiz, vert
+
 def turnOffCells(horiz, vert):
     global cells_turned_off
     cells_turned_off = []
@@ -46,7 +70,7 @@ def convertToTupleFromIndex(I):
   return (A,B)
 
 # Specify the numbers of cell which you want to turn off
-setRandom = True
+setRandom = False
 
 cells_turned_off = []
 
@@ -57,7 +81,8 @@ if setRandom :
                 cells_turned_off.append(convertToIndexFromTuple(i, j))
 
 else:
-    cells_turned_off = turnOffCells([5],[4])
+    horiz, vert = formSAtoAVpath()
+    cells_turned_off = turnOffCells(horiz, vert)
 
 alpha_n=lambda v: 0.01*(-v+10)/(np.exp((-v+10)*0.1) - 1) if v!=10 else 0.1
 beta_n= lambda v: 0.125*np.exp(-v*0.0125)
