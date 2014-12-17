@@ -11,27 +11,28 @@ import numpy as np
 import math
 
 # width
-a = 9
+a = 15
 
 # height
-b = 9
+b = 15
 
 N_cells = a*b
+N_steps = 400
 
 if (N_cells % 2 == 0):
-  center = ((N_cells)/2)*4
+  center = 0 #center = ((N_cells)/2)*4
 else:
-  center = ((N_cells-1)/2)*4
+  center = 0 #center = ((N_cells-1)/2)*4
 
 print 'center index: ',center
 
 def formSAtoAVpath():
-    horiz = []
-    vert = []
+    horiz1 = []
+    vert1 = []
     for i in range(b):
         for j in range(a):
-            if (((i==0) & (j not in [0])) |
-                ((i==1) & (j not in [1])) |
+            if (((i==0) & (j not in [0, 1])) |
+                ((i==1) & (j not in [0, 1])) |
                 ((i==2) & (j not in [1, 2])) |
                 ((i==3) & (j not in [2, 3])) |
                 ((i==4) & (j not in [3, 4, 5, 6])) |
@@ -45,9 +46,9 @@ def formSAtoAVpath():
                 ((i==12) & (j not in [8, 9, 10, 13, 14])) |
                 ((i==13) & (j not in [9, 10, 11, 12, 13, 14])) |
                 ((i==14) & (j not in [14]))):
-                horiz.append(i)
-                vert.append(j)
-    return horiz, vert
+                horiz1.append(i)
+                vert1.append(j)
+    return horiz1, vert1
 
 def turnOffCells(horiz, vert):
     global cells_turned_off
@@ -82,7 +83,11 @@ if setRandom :
 
 else:
     horiz, vert = formSAtoAVpath()
-    cells_turned_off = turnOffCells(horiz, vert)
+
+    #horiz = [0, 2, 1, 3, 3, 0, 1, 2]
+    #vert = [2, 0, 2, 0, 1, 3, 3, 3]
+    
+    cells_turned_off = turnOffCells(horizOrdered, vertOrdered)
 
 alpha_n=lambda v: 0.01*(-v+10)/(np.exp((-v+10)*0.1) - 1) if v!=10 else 0.1
 beta_n= lambda v: 0.125*np.exp(-v*0.0125)
@@ -167,7 +172,6 @@ def cellfunction(x):
     return F
 
 v_rest = 0
-N_steps = 4000
 dt = 0.05
 
 x = np.zeros(N_cells*4) # equilibrium zero conditions
