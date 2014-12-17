@@ -12,24 +12,37 @@ import numpy as np
 import math
 
 possiblePresentationModes = ['atrium', 'tissue']
-presentationMode = 'atrium'
 
-# Blocking parameter
-blockUpperChannel = True
 
-# width
-a = 15
+presentationMode = 'tissue'
+#presentationMode = 'tissue'
 
-# height
-b = 15
+# Parameters
 
-N_cells = a*b
-N_steps = 100
+v_rest = 0
 
-if (N_cells % 2 == 0):
-  center = 0 #center = ((N_cells)/2)*4
-else:
-  center = 0 #center = ((N_cells-1)/2)*4
+dt = 0.05
+
+if presentationMode == 'atrium':
+    a = 15
+    b = 15
+    blockUpperChannel = True
+    N_cells = a*b
+    N_steps = 800
+    center = 0
+
+    timeRange = 100
+
+elif presentationMode == 'tissue':
+    a = 20
+    b = 20
+    N_cells = a*b
+    N_steps = 500
+    prob = 0.7
+    if (N_cells % 2 == 0):
+        center = (N_cells/2)*4 + a*2
+    else:
+        center = ((N_cells-1)/2)*4
 
 print 'center index: ',center
 
@@ -67,8 +80,6 @@ def turnOffCells(horiz, vert):
         cells_turned_off.append(convertToIndexFromTuple(horiz[i], vert[i]))
     return cells_turned_off
 
-prob = 0.7
-
 def convertToIndexFromTuple(A, B):
   return A*a+B
 
@@ -81,17 +92,15 @@ def convertToTupleFromIndex(I):
   return (A,B)
 
 # Specify the numbers of cell which you want to turn off
-setRandom = False
-
 cells_turned_off = []
 
-if setRandom :
+if presentationMode == 'tissue' :
     for i in range(a):
         for j in range(b):
             if (np.random.rand() > prob) & (convertToIndexFromTuple(i, j) != center/4):
                 cells_turned_off.append(convertToIndexFromTuple(i, j))
 
-else:
+elif presentationMode == 'atrium':
     horiz, vert = formSAtoAVpath()
 
     #horiz = [0, 2, 1, 3, 3, 0, 1, 2]
@@ -128,28 +137,14 @@ def cellfunction(x):
     c_m = 1                    # membrane capacitance (Farade)
     g_gj = 0.5            # gap junction conductance
     g = [120, 36, 0.3]    # ion channels conductances (Siemens)
-    #z = [1, 1, 2]                    # ion charge
-    #e = 1.6e-19
-    #Na = 6e23
-    #R = 8.31
-    #T = 310
     V_0 = [115, -12, 10.613]     # extracellar ion concentrations (Mole)
     
     ######################################
-    
-    #print 'cellfunction input:',x
-    
+
     Ntypes = len(channel_types)
     N = len(x)
     Ncells = a*b
     F = np.zeros((N,1))
-    
-    #alpha_n=lambda v: 0.01*(-v+10)/(np.exp((-v+10)*0.1) - 1) if v!=10 else 0.1
-    #beta_n= lambda v: 0.125*np.exp(-v*0.0125)
-    #alpha_m=lambda v: 0.1*(-v+25)/(np.exp((-v+25)*0.1) - 1 ) if v!=25 else 1
-    #beta_m= lambda v: 4*np.exp(-v/float(18))
-    #alpha_h=lambda v: 0.07*np.exp(-v*0.05)
-    #beta_h= lambda v: 1/(np.exp((-v+30)*0.1)+1) if v!=30 else 1
     
     alpha = [alpha_n, alpha_m, alpha_h]
     beta = [beta_n, beta_m, beta_h]
@@ -175,17 +170,10 @@ def cellfunction(x):
         if (i < Ncells-a) and ((index+a*(Ntypes+1))/4 not in cells_turned_off):     #down
             F[index] -= 1./c_m*g_gj*(x[index]-x[index+a*(Ntypes+1)])
     
-        # ???
         for j in range(Ntypes):
             F[index+j+1] += alpha[j](x[index])*(1-x[index+j+1])-beta[j](x[index])*x[index+j+1]
 
-        if i==16:
-            print "dU(16) =", F[index]
-
     return F
-
-v_rest = 0
-dt = 0.05
 
 x = np.zeros(N_cells*4) # equilibrium zero conditions
 
@@ -197,10 +185,10 @@ for i in range(N_cells):
     x[i*4+2]+=m_inf(v_rest)
     x[i*4+3]+=h_inf(v_rest)
 
-amp = 30
-omega = 2*math.pi*0.001 # 1 Hz
+amp = 20
+#omega = 2*math.pi*0.001 # 1 Hz
 #u = lambda t: a*math.sin(omega*t)
-u = lambda t: 10*a*(np.exp(-(t%10)))
+u = lambda t: 10*amp*(np.exp(-(t%10)))
 #u = lambda t: amp*1
 
 xs = np.zeros((N_steps, N_cells*4))
@@ -209,7 +197,6 @@ xs[0] = x
 for i in range(1, N_steps, 1):
     t = i*dt
 
-    #x = traprule(cellfunction,dt,dt,x)
     x[center] += u(t)*dt
     x = FE(cellfunction,dt,dt,x)
 
@@ -223,18 +210,40 @@ def initGrid():
     mat.set_data(gridAtTimestep(0))
     return mat,
 
-def initFinal():
-    line.set_data([], [])
+def initAtrium():
+    lineDrain.set_data([], [])
+    lineSource.set_data([], [])
     mat.set_data(gridAtTimestep(0))
-    return line,
+    return lineSource, lineDrain, mat
+
+def initTissue():
+    lineAll.set_data([], [])
+    mat.set_data(gridAtTimestep(0))
+    return lineAll, mat
 
 # animation function.  This is called sequentially
-def animateGraph(i):
+def animateAllGraph(i):
     #i=i*10 #acceleration
     x = range(N_cells)
     y = [xs[i][4*j] for j in range(N_cells)]
-    line.set_data(x, y)
-    return line,
+    lineAll.set_data(x, y)
+    return lineAll,
+
+def animateSource(i):
+    #i=i*10 #acceleration
+    x = range(timeRange)
+    y = np.zeros(timeRange)
+    for j in range(min(i,timeRange)): y[timeRange-1-j] = xs[i-j][0]
+    lineSource.set_data(x, y)
+    return lineSource,
+
+def animateDrain(i):
+    #i=i*10 #acceleration
+    x = range(timeRange)
+    y = np.zeros(timeRange)
+    for j in range(min(i,timeRange)): y[timeRange-1-j] = xs[i-j][(N_cells-1)*4]
+    lineDrain.set_data(x, y)
+    return lineDrain,
 
 def gridAtTimestep(timeStep):
     grid = np.zeros(N_cells).reshape(b, a)
@@ -251,14 +260,20 @@ def animateGrid(timeStep):
     mat.set_data(gridAtTimestep(timeStep))
     return mat,
 
-def animateFinal(timeStep):
+def animateAtrium(timeStep):
     mat, = animateGrid(timeStep)
-    line, = animateGraph(timeStep)
-    return line, mat
+    lineSource, = animateSource(timeStep)
+    lineDrain, = animateDrain(timeStep)
+    return lineSource, lineDrain, mat
+
+def animateTissue(timeStep):
+    mat, = animateGrid(timeStep)
+    lineAll, = animateAllGraph(timeStep)
+    return lineAll, mat
 
 def normalizePotential(pot):
-  #return (pot-(-v_rest))/(100-(-v_rest))
-  return pot
+    #return (pot-(-v_rest))/(100-(-v_rest))
+    return pot
 
 # 1 - draw a plot
 # 2 - draw a grid
@@ -297,27 +312,39 @@ elif mode == 4:
   mat = ax_grid.matshow(grid, cmap = cm.RdBu_r, interpolation='none', vmin=-50, vmax=50)
   plt.colorbar(mat)
 
-  ax_line = fig.add_subplot(gs[-1, :-2])
-  ax_line.set_xlim([0, N_cells-1])
-  ax_line.set_ylim([-50, 100])
-  ax_line.set_yticks([-50, 0, 100])
-  ax_line.axhline(y=0, ls='--', color='k')
-  line, = ax_line.plot([], [], lw=1)
 
-  ax_line2 = fig.add_subplot(gs[-1, -2:])
-  ax_line2.set_xlim([0, N_cells-1])
-  ax_line2.set_ylim([-50, 100])
-  ax_line2.set_yticks([-50, 0, 100])
-  ax_line2.axhline(y=0, ls='--', color='k')
-  line, = ax_line2.plot([], [], lw=1)
+  if presentationMode == 'atrium':
+    ax_line = fig.add_subplot(gs[-1, :-2])
+    ax_line.set_xlim([0, timeRange])
+    ax_line.set_ylim([-50, 100])
+    ax_line.set_yticks([-50, 0, 100])
+    ax_line.axhline(y=0, ls='--', color='k')
+    lineSource, = ax_line.plot([], [], lw=1)
 
-  ax_heart = fig.add_subplot(gs[:-1, -2:])
-  arr_image = mpimg.imread('heart2.png')
-  ax_heart.imshow(arr_image)
-  ax_heart.axes.get_xaxis().set_visible(False)
-  ax_heart.axes.get_yaxis().set_visible(False)
+    ax_line2 = fig.add_subplot(gs[-1, -2:])
+    ax_line2.set_xlim([0, timeRange])
+    ax_line2.set_ylim([-50, 100])
+    ax_line2.set_yticks([-50, 0, 100])
+    ax_line2.axhline(y=0, ls='--', color='k')
+    lineDrain, = ax_line2.plot([], [], lw=1)
 
-  ani = animation.FuncAnimation(fig, animateFinal, init_func = initFinal, frames=N_steps, interval=2, blit=True)
+    ax_heart = fig.add_subplot(gs[:-1, -2:])
+    arr_image = mpimg.imread('heart2.png')
+    ax_heart.imshow(arr_image)
+    ax_heart.axes.get_xaxis().set_visible(False)
+    ax_heart.axes.get_yaxis().set_visible(False)
+
+    ani = animation.FuncAnimation(fig, animateAtrium, init_func = initAtrium, frames=N_steps, interval=2, blit=True)
+
+  elif presentationMode == 'tissue':
+    ax_line = fig.add_subplot(gs[-1, :-2])
+    ax_line.set_xlim([0, N_cells-1])
+    ax_line.set_ylim([-50, 100])
+    ax_line.set_yticks([-50, 0, 100])
+    ax_line.axhline(y=0, ls='--', color='k')
+    lineAll, = ax_line.plot([], [], lw=1)
+
+    ani = animation.FuncAnimation(fig, animateTissue, init_func = initTissue, frames=N_steps, interval=2, blit=True)
 
 elif mode == 5:
   plt.plot([xs[int(b/2)][4*i] for i in range(a*b)])
