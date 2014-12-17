@@ -10,6 +10,12 @@ import matplotlib.cm as cm
 import numpy as np
 import math
 
+possiblePresentationModes = ['atrium', 'tissue']
+presentationMode = 'atrium'
+
+# Blocking parameter
+blockUpperChannel = True
+
 # width
 a = 15
 
@@ -17,7 +23,7 @@ a = 15
 b = 15
 
 N_cells = a*b
-N_steps = 400
+N_steps = 800
 
 if (N_cells % 2 == 0):
   center = 0 #center = ((N_cells)/2)*4
@@ -29,6 +35,9 @@ print 'center index: ',center
 def formSAtoAVpath():
     horiz1 = []
     vert1 = []
+    passage = []
+    if (not blockUpperChannel):
+        passage = [8, 9, 10]
     for i in range(b):
         for j in range(a):
             if (((i==0) & (j not in [0, 1])) |
@@ -38,14 +47,14 @@ def formSAtoAVpath():
                 ((i==4) & (j not in [3, 4, 5, 6])) |
                 ((i==5) & (j not in [4, 5, 6, 7, 8, 9])) |
                 ((i==6) & (j not in [3, 4, 7, 8, 9])) |
-                ((i==7) & (j not in [2, 3, 8, 9, 10])) |
+                ((i==7) & (j not in [2, 3]) & (j not in passage)) |
                 ((i==8) & (j not in [2, 3, 4, 9, 10, 11])) |
                 ((i==9) & (j not in [3, 4, 5, 6, 10, 11, 12])) |
                 ((i==10) & (j not in [4, 5, 6, 7, 11, 12, 13])) |
                 ((i==11) & (j not in [7, 8, 9, 12, 13, 14])) |
                 ((i==12) & (j not in [8, 9, 10, 13, 14])) |
                 ((i==13) & (j not in [9, 10, 11, 12, 13, 14])) |
-                ((i==14) & (j not in [14]))):
+                ((i==14) & (j not in [12, 13, 14]))):
                 horiz1.append(i)
                 vert1.append(j)
     return horiz1, vert1
@@ -86,8 +95,8 @@ else:
 
     #horiz = [0, 2, 1, 3, 3, 0, 1, 2]
     #vert = [2, 0, 2, 0, 1, 3, 3, 3]
-    
-    cells_turned_off = turnOffCells(horizOrdered, vertOrdered)
+
+    cells_turned_off = turnOffCells(horiz, vert)
 
 alpha_n=lambda v: 0.01*(-v+10)/(np.exp((-v+10)*0.1) - 1) if v!=10 else 0.1
 beta_n= lambda v: 0.125*np.exp(-v*0.0125)
@@ -156,13 +165,13 @@ def cellfunction(x):
         F[index] += -1./c_m*(g[0]*x[index+2]**3*x[index+3]*(x[index]-V_0[0])+g[1]*x[index+1]**4*(x[index]-V_0[1])+g[2]*(x[index]-V_0[2]))
         
         # Connecting cells
-        if (i%a != 0) and (index-(Ntypes+1) not in cells_turned_off):
+        if (i%a != 0) and ((index-(Ntypes+1))/4 not in cells_turned_off):
             F[index] -= 1./c_m*g_gj*(x[index]-x[index-(Ntypes+1)])
-        if (i%a != (a-1)) and (index+(Ntypes+1) not in cells_turned_off):
+        if (i%a != (a-1)) and ((index+(Ntypes+1))/4 not in cells_turned_off):
             F[index] -= 1./c_m*g_gj*(x[index]-x[index+(Ntypes+1)])
-        if (i >= a) and (index-a*(Ntypes+1) not in cells_turned_off):
+        if (i >= a) and ((index-a*(Ntypes+1))/4 not in cells_turned_off):
             F[index] -= 1./c_m*g_gj*(x[index]-x[index-a*(Ntypes+1)])
-        if (i < Ncells-a) and (index+a*(Ntypes+1) not in cells_turned_off):
+        if (i < Ncells-a) and ((index+a*(Ntypes+1))/4 not in cells_turned_off):
             F[index] -= 1./c_m*g_gj*(x[index]-x[index+a*(Ntypes+1)])
     
         # ???
@@ -292,9 +301,11 @@ elif mode == 4:
 
   line, = ax_line.plot([], [], lw=1)
 
+  ax_gif =
+
   ani = animation.FuncAnimation(fig, animateFinal, init_func = initFinal, frames=N_steps, interval=2, blit=True)
 
-elif mode == 4:
+elif mode == 5:
   plt.plot([xs[int(b/2)][4*i] for i in range(a*b)])
 
 plt.show()
