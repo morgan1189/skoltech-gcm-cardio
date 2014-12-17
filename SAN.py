@@ -87,7 +87,7 @@ else:
     #horiz = [0, 2, 1, 3, 3, 0, 1, 2]
     #vert = [2, 0, 2, 0, 1, 3, 3, 3]
     
-    cells_turned_off = turnOffCells(horizOrdered, vertOrdered)
+    cells_turned_off = turnOffCells(horiz, vert)
 
 alpha_n=lambda v: 0.01*(-v+10)/(np.exp((-v+10)*0.1) - 1) if v!=10 else 0.1
 beta_n= lambda v: 0.125*np.exp(-v*0.0125)
@@ -147,7 +147,7 @@ def cellfunction(x):
     for i in range(Ncells):
         
         index = i*(1+Ntypes)
-        
+
         if (i in cells_turned_off):
           F[index] = 0
           continue
@@ -156,18 +156,21 @@ def cellfunction(x):
         F[index] += -1./c_m*(g[0]*x[index+2]**3*x[index+3]*(x[index]-V_0[0])+g[1]*x[index+1]**4*(x[index]-V_0[1])+g[2]*(x[index]-V_0[2]))
         
         # Connecting cells
-        if (i%a != 0) and (index-(Ntypes+1) not in cells_turned_off):
+        if (i%a != 0) and ((index-(Ntypes+1))/4 not in cells_turned_off):   #left neighbour
             F[index] -= 1./c_m*g_gj*(x[index]-x[index-(Ntypes+1)])
-        if (i%a != (a-1)) and (index+(Ntypes+1) not in cells_turned_off):
+        if (i%a != (a-1)) and ((index+(Ntypes+1))/4 not in cells_turned_off):    #right
             F[index] -= 1./c_m*g_gj*(x[index]-x[index+(Ntypes+1)])
-        if (i >= a) and (index-a*(Ntypes+1) not in cells_turned_off):
+        if (i >= a) and ((index-a*(Ntypes+1))/4 not in cells_turned_off):     #up
             F[index] -= 1./c_m*g_gj*(x[index]-x[index-a*(Ntypes+1)])
-        if (i < Ncells-a) and (index+a*(Ntypes+1) not in cells_turned_off):
+        if (i < Ncells-a) and ((index+a*(Ntypes+1))/4 not in cells_turned_off):     #down
             F[index] -= 1./c_m*g_gj*(x[index]-x[index+a*(Ntypes+1)])
     
         # ???
         for j in range(Ntypes):
             F[index+j+1] += alpha[j](x[index])*(1-x[index+j+1])-beta[j](x[index])*x[index+j+1]
+
+        if i==16:
+            print "dU(16) =", F[index]
 
     return F
 
