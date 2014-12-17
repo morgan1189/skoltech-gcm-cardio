@@ -14,7 +14,7 @@ import math
 possiblePresentationModes = ['atrium', 'tissue']
 
 
-presentationMode = 'tissue'
+presentationMode = 'atrium'
 #presentationMode = 'tissue'
 
 # Parameters
@@ -26,7 +26,7 @@ dt = 0.05
 if presentationMode == 'atrium':
     a = 15
     b = 15
-    blockUpperChannel = True
+    blockUpperChannel = False
     N_cells = a*b
     N_steps = 800
     center = 0
@@ -305,27 +305,36 @@ elif mode == 3:
   plt.colorbar(mat)
 elif mode == 4:
   gs = gridspec.GridSpec(4, 4)
-  gs.update(left = 0.07, right = 1.05, wspace = 0.02)
+  gs.update(left = 0.07, wspace = 0.5, hspace = 0.5)
 
   grid = gridAtTimestep(0)
   ax_grid = fig.add_subplot(gs[:-1, :-2])
   mat = ax_grid.matshow(grid, cmap = cm.RdBu_r, interpolation='none', vmin=-50, vmax=50)
-  plt.colorbar(mat)
-
+  plt.colorbar(mat, shrink = 0.8, ticks = [-50, 0, 50])
 
   if presentationMode == 'atrium':
+    #ax_grid.annotate('SA', xy=(10, 10), xytext =(10, 10), xycoords = 'axes fraction', fontsize=16, horizontalalignment='center', verticalalignment='center')
+
+    ax_grid.set_title('SA to AV propagation')
+    ax_grid.axes.get_xaxis().set_visible(False)
+    ax_grid.axes.get_yaxis().set_visible(False)
+
     ax_line = fig.add_subplot(gs[-1, :-2])
     ax_line.set_xlim([0, timeRange])
-    ax_line.set_ylim([-50, 100])
-    ax_line.set_yticks([-50, 0, 100])
+    ax_line.set_ylim([-50, 200])
+    ax_line.set_yticks([-50, 0, 200])
     ax_line.axhline(y=0, ls='--', color='k')
+    ax_line.axes.get_xaxis().set_visible(False)
+    ax_line.set_title('SA potential')
     lineSource, = ax_line.plot([], [], lw=1)
 
     ax_line2 = fig.add_subplot(gs[-1, -2:])
     ax_line2.set_xlim([0, timeRange])
     ax_line2.set_ylim([-50, 100])
-    ax_line2.set_yticks([-50, 0, 100])
+    ax_line2.set_yticks([-50, 0, 200])
     ax_line2.axhline(y=0, ls='--', color='k')
+    ax_line2.axes.get_xaxis().set_visible(False)
+    ax_line2.set_title('AV potential')
     lineDrain, = ax_line2.plot([], [], lw=1)
 
     ax_heart = fig.add_subplot(gs[:-1, -2:])
