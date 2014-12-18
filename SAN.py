@@ -11,22 +11,22 @@ import matplotlib.cm as cm
 import numpy as np
 import math
 
-possiblePresentationModes = ['atrium', 'tissue']
+possiblePresentationModes = ['atrium', 'atrium-blocked', 'tissue']
+presentationMode = possiblePresentationModes[2]
 
-
-presentationMode = 'atrium'
 #presentationMode = 'tissue'
 
 # Parameters
-
 v_rest = 0
-
 dt = 0.05
 
-if presentationMode == 'atrium':
+if ((presentationMode == 'atrium') | (presentationMode == 'atrium-blocked')):
     a = 15
     b = 15
-    blockUpperChannel = False
+    if (presentationMode == 'atrium'):
+        blockUpperChannel = False
+    else:
+        blockUpperChannel = True
     N_cells = a*b
     N_steps = 800
     center = 0
@@ -100,7 +100,8 @@ if presentationMode == 'tissue' :
             if (np.random.rand() > prob) & (convertToIndexFromTuple(i, j) != center/4):
                 cells_turned_off.append(convertToIndexFromTuple(i, j))
 
-elif presentationMode == 'atrium':
+elif ((presentationMode == 'atrium') | (presentationMode == 'atrium-blocked')):
+
     horiz, vert = formSAtoAVpath()
 
     #horiz = [0, 2, 1, 3, 3, 0, 1, 2]
@@ -304,15 +305,15 @@ elif mode == 3:
   mat = ax.matshow(gridAtTimestep(10), interpolation='none', vmin=0, vmax=1)
   plt.colorbar(mat)
 elif mode == 4:
-  gs = gridspec.GridSpec(4, 4)
-  gs.update(left = 0.07, wspace = 0.5, hspace = 0.5)
+  if ((presentationMode == 'atrium') | (presentationMode == 'atrium-blocked')):
+    gs = gridspec.GridSpec(4, 4)
+    gs.update(left = 0.07, wspace = 0.5, hspace = 0.5)
 
-  grid = gridAtTimestep(0)
-  ax_grid = fig.add_subplot(gs[:-1, :-2])
-  mat = ax_grid.matshow(grid, cmap = cm.RdBu_r, interpolation='none', vmin=-50, vmax=50)
-  plt.colorbar(mat, shrink = 0.8, ticks = [-50, 0, 50])
+    grid = gridAtTimestep(0)
+    ax_grid = fig.add_subplot(gs[:-1, :-2])
+    mat = ax_grid.matshow(grid, cmap = cm.RdBu_r, interpolation='none', vmin=-50, vmax=50)
+    plt.colorbar(mat, shrink = 0.8, ticks = [-50, 0, 50])
 
-  if presentationMode == 'atrium':
     #ax_grid.annotate('SA', xy=(10, 10), xytext =(10, 10), xycoords = 'axes fraction', fontsize=16, horizontalalignment='center', verticalalignment='center')
 
     ax_grid.set_title('SA to AV propagation')
@@ -338,7 +339,11 @@ elif mode == 4:
     lineDrain, = ax_line2.plot([], [], lw=1)
 
     ax_heart = fig.add_subplot(gs[:-1, -2:])
-    arr_image = mpimg.imread('heart2.png')
+    if (blockUpperChannel):
+        image_name = 'heart-blocked.png'
+    else:
+        image_name = 'heart-normal.png'
+    arr_image = mpimg.imread(image_name)
     ax_heart.imshow(arr_image)
     ax_heart.axes.get_xaxis().set_visible(False)
     ax_heart.axes.get_yaxis().set_visible(False)
@@ -346,7 +351,14 @@ elif mode == 4:
     ani = animation.FuncAnimation(fig, animateAtrium, init_func = initAtrium, frames=N_steps, interval=2, blit=True)
 
   elif presentationMode == 'tissue':
-    ax_line = fig.add_subplot(gs[-1, :-2])
+    gs = gridspec.GridSpec(3, 3)
+
+    grid = gridAtTimestep(0)
+    ax_grid = fig.add_subplot(gs[:-1, :])
+    mat = ax_grid.matshow(grid, cmap = cm.RdBu_r, interpolation='none', vmin=-50, vmax=50)
+    plt.colorbar(mat, shrink = 0.8, ticks = [-50, 0, 50])
+
+    ax_line = fig.add_subplot(gs[-1, :])
     ax_line.set_xlim([0, N_cells-1])
     ax_line.set_ylim([-50, 100])
     ax_line.set_yticks([-50, 0, 100])
